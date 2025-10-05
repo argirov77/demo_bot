@@ -1,0 +1,8 @@
+{
+  "services": [
+    {"id": 1, "name": "Маникюр", "duration_min": 60, "price": 6000},
+    {"id": 2, "name": "Педикюр", "duration_min": 90, "price": 9000},
+    {"id": 3, "name": "Косметолог", "duration_min": 60, "price": 7000}
+  ],
+  "bookings": []
+}
