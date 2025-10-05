@@ -1,0 +1,35 @@
+networks:
+  bot_demo_net:
+    driver: bridge
+
+services:
+  payment-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bot_demo:latest
+    container_name: bot_demo-payment-web
+    command: ["uvicorn", "payment_demo.app:app", "--host", "0.0.0.0", "--port", "8088"]
+    env_file: [.env]
+    environment:
+      TZ: ${TZ:-Europe/Sofia}
+    ports:
+      - "${PAY_HOST_PORT:-9088}:8088"
+    restart: unless-stopped
+    networks: [bot_demo_net]
+
+  bot:
+    build:
+      context: .
+    image: bot_demo:latest
+    container_name: bot_demo-telegram-bot
+    command: ["python", "-m", "bot.main"]
+    env_file: [.env]
+    environment:
+      TZ: ${TZ:-Europe/Sofia}
+      PUBLIC_PAY_BASE_URL: ${PUBLIC_PAY_BASE_URL:-http://localhost:${PAY_HOST_PORT:-9088}}
+    depends_on:
+      payment-web:
+        condition: service_started
+    restart: unless-stopped
+    networks: [bot_demo_net]
