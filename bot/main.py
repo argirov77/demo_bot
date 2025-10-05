@@ -15,6 +15,41 @@ dp = Dispatcher()
 
 DATA_PATH = Path("/app/data/demo.json")
 DATA_LOCK = asyncio.Lock()
+SESSION_STATE: dict[tuple[int, int], dict] = {}
+SESSION_LOCK = asyncio.Lock()
+
+
+def _session_key(call: types.CallbackQuery) -> tuple[int, int] | None:
+    if call.message is None:
+        return None
+    return (call.message.chat.id, call.message.message_id)
+
+
+async def session_get(call: types.CallbackQuery) -> dict | None:
+    key = _session_key(call)
+    if key is None:
+        return None
+    async with SESSION_LOCK:
+        state = SESSION_STATE.get(key)
+        return dict(state) if state else None
+
+
+async def session_update(call: types.CallbackQuery, **updates) -> dict:
+    key = _session_key(call)
+    if key is None:
+        return {}
+    async with SESSION_LOCK:
+        state = SESSION_STATE.setdefault(key, {})
+        state.update(updates)
+        return dict(state)
+
+
+async def session_clear(call: types.CallbackQuery):
+    key = _session_key(call)
+    if key is None:
+        return
+    async with SESSION_LOCK:
+        SESSION_STATE.pop(key, None)
 
 def _now():
     # без pytz, просто локально
@@ -83,6 +118,7 @@ async def start(m: types.Message):
 
 @dp.callback_query(F.data == "menu_main")
 async def menu_main(call: types.CallbackQuery):
+    await session_clear(call)
     await call.message.edit_text("Главное меню:", reply_markup=main_menu())
     await call.answer()
 
@@ -153,41 +189,64 @@ async def menu_free(call: types.CallbackQuery):
 @dp.callback_query(F.data == "menu_book")
 async def menu_book(call: types.CallbackQuery):
     data = await read_data()
+    await session_clear(call)
     await call.message.edit_text("Выберите услугу:", reply_markup=services_kb(data["services"]))
     await call.answer()
 
 @dp.callback_query(F.data == "menu_book_dates")
 async def menu_book_dates(call: types.CallbackQuery):
-    await call.message.edit_text("Выберите дату:", reply_markup=dates_kb(days=7))
+    conf = await session_get(call)
+    suffix = f" для услуги «{conf['svc_name']}»" if conf and conf.get("svc_name") else ""
+    await call.message.edit_text(f"Выберите дату{suffix}:", reply_markup=dates_kb(days=7))
     await call.answer()
 
 @dp.callback_query(F.data.startswith("svc_"))
 async def choose_service(call: types.CallbackQuery):
     svc_id = int(call.data.split("_",1)[1])
-    await call.message.edit_text(f"Вы выбрали услугу #{svc_id}. Теперь выберите дату:", reply_markup=dates_kb())
-    # запомним выбранную услугу в message metadata — в демо прокинем через текст callback
-    call.message.conf = {"svc_id": svc_id}
+    data = await read_data()
+    svc = next((s for s in data["services"] if s["id"] == svc_id), None)
+    if not svc:
+        await call.answer("Услуга не найдена", show_alert=True)
+        return
+    await session_update(call,
+                         svc_id=svc["id"],
+                         svc_name=svc["name"],
+                         duration=svc["duration_min"],
+                         price=svc["price"])
+    await call.message.edit_text(
+        (f"Вы выбрали: {svc['name']}\n"
+         f"Длительность: {svc['duration_min']} мин\n"
+         f"Стоимость: {svc['price']/100:.2f} лв\n\n"
+         "Теперь выберите дату:"),
+        reply_markup=dates_kb())
     await call.answer()
 
 # перехват выбора даты — сохраняем в conf
 @dp.callback_query(F.data.startswith("date_"))
 async def choose_date(call: types.CallbackQuery):
     d = dt.date.fromisoformat(call.data.split("_",1)[1])
-    # если услуга не пришла (например из меню_free), по умолчанию Маникюр id=1
-    svc_id = getattr(call.message, "conf", {}).get("svc_id", 1)
-    # найдём её длительность
-    data = await read_data()
-    svc = next((s for s in data["services"] if s["id"] == svc_id), data["services"][0])
-    # сохраним выбор
-    call.message.conf = {"svc_id": svc["id"], "date": d.isoformat(), "duration": svc["duration_min"], "price": svc["price"], "svc_name": svc["name"]}
-    await call.message.edit_text(f"Дата: {d.strftime('%d %b (%a)')}\nВыберите время:", reply_markup=times_kb(d, svc["duration_min"]))
+    conf = await session_get(call)
+    if not conf or "svc_id" not in conf:
+        data = await read_data()
+        default = data["services"][0]
+        conf = await session_update(call,
+                                    svc_id=default["id"],
+                                    svc_name=default["name"],
+                                    duration=default["duration_min"],
+                                    price=default["price"])
+    await session_update(call, date=d.isoformat())
+    await call.message.edit_text(
+        (f"Услуга: {conf['svc_name']}\n"
+         f"Дата: {d.strftime('%d %b (%a)')}\n"
+         "Выберите время:"),
+        reply_markup=times_kb(d, conf["duration"]))
     await call.answer()
 
 @dp.callback_query(F.data.startswith("time_"))
 async def choose_time(call: types.CallbackQuery):
     ts = int(call.data.split("_",1)[1])
-    conf = getattr(call.message, "conf", None)
-    if not conf:
+    conf = await session_get(call)
+    if not conf or not {"duration", "price", "svc_name"}.issubset(conf):
         await call.answer("Сессия истекла, начните заново.", show_alert=True); return
     start_ts = ts
     end_ts = ts + conf["duration"] * 60
@@ -222,6 +281,7 @@ async def choose_time(call: types.CallbackQuery):
     })
     await write_data(data)
 
+    await session_clear(call)
     await call.message.edit_text(text, reply_markup=kb)
     await call.answer()
 

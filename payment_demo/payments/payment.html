@@ -3,34 +3,77 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Оплата заказа №{{ORDER_ID}}</title>
+  <title>DemoPay · Оплата заказа №{{ORDER_ID}}</title>
   <link rel="stylesheet" href="/static/styles.css"/>
 </head>
-<body>
-  <div class="card">
-    <h1>Оплата услуги</h1>
-    <p>Сумма к оплате: <strong>{{AMOUNT}}</strong></p>
-    <form method="post" action="/pay/submit" class="form">
-      <input type="hidden" name="order_id" value="{{ORDER_ID}}"/>
-      <input type="hidden" name="return_url" value="{{RETURN_URL}}"/>
-      <label>Номер карты</label>
-      <input type="text" placeholder="0000 0000 0000 0000" maxlength="19" required/>
-      <div class="row">
-        <div>
-          <label>MM/YY</label>
-          <input type="text" placeholder="MM/YY" maxlength="5" required/>
-        </div>
-        <div>
-          <label>CVV</label>
-          <input type="password" placeholder="***" maxlength="3" required/>
-        </div>
+<body class="checkout">
+  <div class="checkout__container">
+    <header class="checkout__header">
+      <div class="brand">
+        <div class="brand__logo">DemoPay</div>
+        <div class="brand__subtitle">Защищённый платеж</div>
       </div>
-      <div class="actions">
-        <button name="action" value="success" type="submit">Оплатить</button>
-        <button name="action" value="fail" type="submit" class="muted">Отменить</button>
+      <div class="order">
+        <span class="order__label">Заказ №</span>
+        <span class="order__number">{{ORDER_ID}}</span>
       </div>
-      <p class="hint">Демонстрация. Данные карты никуда не отправляются.</p>
-    </form>
+    </header>
+    <main class="checkout__body">
+      <section class="summary">
+        <div class="summary__title">К оплате</div>
+        <div class="summary__amount">{{AMOUNT}}</div>
+        <div class="summary__hint">Средства будут списаны только после подтверждения операции.</div>
+      </section>
+      <section class="payment-form">
+        <form method="post" action="/pay/submit" class="form">
+          <input type="hidden" name="order_id" value="{{ORDER_ID}}"/>
+          <input type="hidden" name="return_url" value="{{RETURN_URL}}"/>
+
+          <label class="form__label" for="card-holder">Имя держателя карты</label>
+          <input class="form__input" id="card-holder" name="card_holder" placeholder="IVAN IVANOV" autocomplete="cc-name" required/>
+
+          <label class="form__label" for="card-number">Номер карты</label>
+          <div class="card-number">
+            <input class="form__input" id="card-number" name="card_number" placeholder="0000 0000 0000 0000" maxlength="19" autocomplete="cc-number" inputmode="numeric" required/>
+            <div class="card-icons">
+              <span class="icon visa">Visa</span>
+              <span class="icon mc">Mastercard</span>
+              <span class="icon mir">Мир</span>
+            </div>
+          </div>
+
+          <div class="form__row">
+            <div class="form__col">
+              <label class="form__label" for="exp">Срок действия</label>
+              <input class="form__input" id="exp" name="exp" placeholder="MM/YY" maxlength="5" autocomplete="cc-exp" inputmode="numeric" required/>
+            </div>
+            <div class="form__col">
+              <label class="form__label" for="cvv">CVV/CVC</label>
+              <input class="form__input" id="cvv" type="password" name="cvv" placeholder="***" maxlength="3" autocomplete="cc-csc" inputmode="numeric" required/>
+            </div>
+          </div>
+
+          <label class="form__label" for="email">E-mail для чека</label>
+          <input class="form__input" id="email" type="email" name="email" placeholder="name@example.com" autocomplete="email"/>
+
+          <div class="form__checkbox">
+            <input id="save-card" type="checkbox"/>
+            <label for="save-card">Сохранить карту для будущих оплат</label>
+          </div>
+
+          <div class="actions">
+            <button name="action" value="success" type="submit">Оплатить</button>
+            <button name="action" value="fail" type="submit" class="muted">Отменить</button>
+          </div>
+
+          <div class="secure-note"><span class="lock">🔒</span>Платёжные данные защищены по стандарту PCI DSS. Демонстрационный режим.</div>
+        </form>
+      </section>
+    </main>
+    <footer class="checkout__footer">
+      <span>© DemoPay</span>
+      <span>Поддержка: support@demopay.test</span>
+    </footer>
   </div>
 </body>
 </html>
