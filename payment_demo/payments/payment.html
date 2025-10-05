@@ -3,77 +3,106 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>DemoPay · Оплата заказа №{{ORDER_ID}}</title>
+  <title>DemoPay — Заказ №{{ORDER_ID}}</title>
   <link rel="stylesheet" href="/static/styles.css"/>
 </head>
-<body class="checkout">
-  <div class="checkout__container">
-    <header class="checkout__header">
-      <div class="brand">
-        <div class="brand__logo">DemoPay</div>
-        <div class="brand__subtitle">Защищённый платеж</div>
+<body>
+  <header class="header">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" class="brand-logo" aria-hidden="true"><circle cx="16" cy="16" r="16"/></svg>
+      <span class="brand-name">DemoPay</span>
+      <span class="brand-sub">Защищённый платёж</span>
+    </div>
+    <div class="order">Заказ № <strong>{{ORDER_ID}}</strong></div>
+  </header>
+
+  <main class="grid">
+    <!-- ЛЕВАЯ ПАНЕЛЬ С СУММОЙ -->
+    <aside class="amount-card">
+      <div class="amount-title">К ОПЛАТЕ</div>
+      <div class="amount-value">{{AMOUNT}}</div>
+      <div class="amount-note">Средства будут списаны только после подтверждения операции.</div>
+      <ul class="bullets">
+        <li>3-D Secure 2.0</li>
+        <li>SSL 256-bit</li>
+        <li>PCI DSS</li>
+      </ul>
+    </aside>
+
+    <!-- ФОРМА -->
+    <section class="pay-form">
+      <!-- Быстрые кошельки -->
+      <div class="wallets">
+        <button type="button" class="btn-wallet btn-apple" disabled title="Демонстрация">
+          <svg viewBox="0 0 24 24" class="icon-apple" aria-hidden="true"><path d="M16.7 13.4c0-2.3 1.9-3.4 2-3.4-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.7.8-3.4.8-.7 0-1.8-.8-3-.8-1.5 0-2.9.9-3.7 2.3-1.6 2.8-.4 6.9 1.1 9.1.7 1 1.5 2.2 2.6 2.1 1-.1 1.5-.7 2.7-.7s1.6.7 2.7.7 1.8-1 2.5-2c.8-1.2 1.1-2.4 1.1-2.5-.1-.1-2.2-.8-2.2-3.8zM14.8 5.4c.6-.8 1-1.9.9-3-.9.1-2 .6-2.6 1.4-.6.7-1.1 1.8-.9 2.9 1 .1 2-.5 2.6-1.3z"/></svg>
+          <span>Pay</span>
+        </button>
+        <button type="button" class="btn-wallet btn-gpay" disabled title="Демонстрация">
+          <svg viewBox="0 0 24 24" class="icon-g" aria-hidden="true">
+            <path fill="#EA4335" d="M12 10.2v3.7h5.2c-.2 1.2-.6 2.1-1.4 2.9-1 .9-2.3 1.4-3.8 1.4-1.8 0-3.3-.6-4.4-1.8C6.5 15.2 6 13.8 6 12s.5-3.2 1.6-4.4c1.1-1.2 2.6-1.8 4.4-1.8 1.6 0 3 .5 4.1 1.5l2.8-2.8C17.6 2.8 15.1 2 12.6 2 9.9 2 7.7 2.9 6 4.6 4.3 6.3 3.4 8.4 3.4 11s.9 4.7 2.6 6.4c1.7 1.7 3.9 2.6 6.6 2.6 2.7 0 4.8-.9 6.4-2.5 1.7-1.7 2.5-4.1 2.5-7 0-.6-.1-1.1-.2-1.6H12z"/>
+          </svg>
+          <span>Pay</span>
+        </button>
       </div>
-      <div class="order">
-        <span class="order__label">Заказ №</span>
-        <span class="order__number">{{ORDER_ID}}</span>
+
+      <div class="divider"><span>или картой</span></div>
+
+      <form method="post" action="/pay/submit" class="form">
+        <input type="hidden" name="order_id" value="{{ORDER_ID}}"/>
+        <input type="hidden" name="return_url" value="{{RETURN_URL}}"/>
+
+        <label>Имя держателя карты</label>
+        <input type="text" placeholder="IVAN IVANOV" autocomplete="cc-name" required/>
+
+        <div class="pcards">
+          <span class="pill visa">Visa</span>
+          <span class="pill mc">Mastercard</span>
+          <span class="pill mir">Мир</span>
+          <span class="pill maestro">Maestro</span>
+        </div>
+
+        <label>Номер карты</label>
+        <input type="text" inputmode="numeric" placeholder="0000 0000 0000 0000" maxlength="19" autocomplete="cc-number" required/>
+
+        <div class="row">
+          <div>
+            <label>Срок действия</label>
+            <input type="text" inputmode="numeric" placeholder="MM/YY" maxlength="5" autocomplete="cc-exp" required/>
+          </div>
+          <div>
+            <label>CVV/CVC</label>
+            <input type="password" inputmode="numeric" placeholder="***" maxlength="3" autocomplete="cc-csc" required/>
+          </div>
+        </div>
+
+        <label>E-mail для чека</label>
+        <input type="email" placeholder="name@example.com" autocomplete="email"/>
+
+        <label class="check">
+          <input type="checkbox" disabled/> Сохранить карту для будущих оплат
+        </label>
+
+        <div class="actions">
+          <button name="action" value="success" type="submit" class="btn-primary">Оплатить</button>
+          <button name="action" value="fail" type="submit" class="btn-muted">Отменить</button>
+        </div>
+
+        <div class="trust">
+          <span class="lock">🔒</span> Платёжные данные защищены по стандарту PCI DSS. Демонстрационный режим.
+        </div>
+      </form>
+
+      <div class="seals">
+        <div class="seal">3-D Secure</div>
+        <div class="seal">PCI DSS</div>
+        <div class="seal">SSL Secured</div>
       </div>
-    </header>
-    <main class="checkout__body">
-      <section class="summary">
-        <div class="summary__title">К оплате</div>
-        <div class="summary__amount">{{AMOUNT}}</div>
-        <div class="summary__hint">Средства будут списаны только после подтверждения операции.</div>
-      </section>
-      <section class="payment-form">
-        <form method="post" action="/pay/submit" class="form">
-          <input type="hidden" name="order_id" value="{{ORDER_ID}}"/>
-          <input type="hidden" name="return_url" value="{{RETURN_URL}}"/>
+    </section>
+  </main>
 
-          <label class="form__label" for="card-holder">Имя держателя карты</label>
-          <input class="form__input" id="card-holder" name="card_holder" placeholder="IVAN IVANOV" autocomplete="cc-name" required/>
-
-          <label class="form__label" for="card-number">Номер карты</label>
-          <div class="card-number">
-            <input class="form__input" id="card-number" name="card_number" placeholder="0000 0000 0000 0000" maxlength="19" autocomplete="cc-number" inputmode="numeric" required/>
-            <div class="card-icons">
-              <span class="icon visa">Visa</span>
-              <span class="icon mc">Mastercard</span>
-              <span class="icon mir">Мир</span>
-            </div>
-          </div>
-
-          <div class="form__row">
-            <div class="form__col">
-              <label class="form__label" for="exp">Срок действия</label>
-              <input class="form__input" id="exp" name="exp" placeholder="MM/YY" maxlength="5" autocomplete="cc-exp" inputmode="numeric" required/>
-            </div>
-            <div class="form__col">
-              <label class="form__label" for="cvv">CVV/CVC</label>
-              <input class="form__input" id="cvv" type="password" name="cvv" placeholder="***" maxlength="3" autocomplete="cc-csc" inputmode="numeric" required/>
-            </div>
-          </div>
-
-          <label class="form__label" for="email">E-mail для чека</label>
-          <input class="form__input" id="email" type="email" name="email" placeholder="name@example.com" autocomplete="email"/>
-
-          <div class="form__checkbox">
-            <input id="save-card" type="checkbox"/>
-            <label for="save-card">Сохранить карту для будущих оплат</label>
-          </div>
-
-          <div class="actions">
-            <button name="action" value="success" type="submit">Оплатить</button>
-            <button name="action" value="fail" type="submit" class="muted">Отменить</button>
-          </div>
-
-          <div class="secure-note"><span class="lock">🔒</span>Платёжные данные защищены по стандарту PCI DSS. Демонстрационный режим.</div>
-        </form>
-      </section>
-    </main>
-    <footer class="checkout__footer">
-      <span>© DemoPay</span>
-      <span>Поддержка: support@demopay.test</span>
-    </footer>
-  </div>
+  <footer class="footer">
+    <div>© DemoPay, 2025 · Merchant: Beauty Studio</div>
+    <a href="#" onclick="return false;">Политика конфиденциальности</a>
+  </footer>
 </body>
 </html>
