@@ -28,6 +28,8 @@ services:
     environment:
       TZ: ${TZ:-Europe/Sofia}
       PUBLIC_PAY_BASE_URL: ${PUBLIC_PAY_BASE_URL:-http://localhost:${PAY_HOST_PORT:-9088}}
+    volumes:
+      - ./data:/app/data
     depends_on:
       payment-web:
         condition: service_started
